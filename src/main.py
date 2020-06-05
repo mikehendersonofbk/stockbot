@@ -1,4 +1,5 @@
 from QuoteProvider.backtester import BTQuoteProvider
+from StrategyProvider.mse import MSEStrategyProvider
 from config import Config
 import os
 from multiprocessing import Queue
@@ -7,11 +8,30 @@ def quote_source_class(qs):
     if qs == 'BackTest':
         return BTQuoteProvider
 
+def strategy_class(ss):
+    if ss == 'MSE':
+        return MSEStrategyProvider
+
 def init_config():
     return Config()
 
 def init_quote_provider(qs_cls, settings):
-    return qs_cls(settings)
+    qp = qs_cls(settings)
+    qp.run()
+    return qp
+
+def init_strategy_provider(ss_cls):
+    sp = ss_cls()
+    sp.run()
+    return sp
+
+def get_quotes(qp):
+    while True:
+        quote_msg = qp.broadcast_queue.get()
+        if quote_msg == 'DONE':
+            return
+        yield quote_msg
+
 
 if __name__ == '__main__':
     config = init_config()
@@ -24,10 +44,9 @@ if __name__ == '__main__':
         'INSTRUMENTS': config.instruments,
         'LIMIT': 1000,
     })
-    quote_provider.run()
+    strategy_provider = init_strategy_provider(strategy_class(config.strategy_source))
 
-    while True:
-        quote_msg = quote_provider.broadcast_queue.get()
-        if quote_msg == 'DONE':
-            break
+    for quote_msg in get_quotes(quote_provider):
         print('Got message from quote queue: {}'.format(quote_msg))
+        print('submitting to strategy')
+        strategy_provider.ingest_queue.put(quote_msg)

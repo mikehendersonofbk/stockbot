@@ -10,3 +10,4 @@ class Config:
         self.alpaca_secret = os.getenv('ALPACA_SECRET', None)
         self.instruments = os.getenv('INSTRUMENT_LIST', 'AAPL,NFLX').split(',')
         self.quote_source = os.getenv('QUOTE_SOURCE', 'BackTest')
+        self.strategy_source = os.getenv('STRATEGY_SOURCE', 'MSE')

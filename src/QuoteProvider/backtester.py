@@ -2,10 +2,10 @@ from .base import QuoteProviderBase
 import time
 import requests
 import os
-from multiprocessing import Queue
 
 class BTQuoteProvider(QuoteProviderBase):
     def __init__(self, settings):
+        super().__init__()
         print('init backtest queue in process: {}'.format(os.getpid()))
         print('fetching data from alpaca for instruments {}'.format(','.join(settings['INSTRUMENTS'])))
         self.data_url = settings['DATA_URL']
@@ -14,7 +14,6 @@ class BTQuoteProvider(QuoteProviderBase):
         self.instruments = settings['INSTRUMENTS']
         self.limit = settings['LIMIT']
         self._gather_historical_data()
-        self.broadcast_queue = Queue()
 
     def _gather_historical_data(self):
         params = { 'symbols': ','.join(self.instruments), 'limit': self.limit }
@@ -27,7 +26,14 @@ class BTQuoteProvider(QuoteProviderBase):
         for i in range(self.limit):
             time.sleep(1)
             for instrument in self.instruments:
-                q.put(self.data[instrument][i])
+                q.put({
+                    'symbol': instrument,
+                    'o': self.data[instrument][i]['o'],
+                    'c': self.data[instrument][i]['c'],
+                    'h': self.data[instrument][i]['h'],
+                    'l': self.data[instrument][i]['l'],
+                    'v': self.data[instrument][i]['v'],
+                })
         q.put('DONE')
 
     def broadcast(self, val):
