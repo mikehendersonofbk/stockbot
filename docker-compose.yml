@@ -1,0 +1,11 @@
+version: '3'
+  
+services:
+  stocker:
+    container_name: stocker
+    build: .
+    command: tail -f /dev/null
+    volumes:
+      - .:/opt
+    ports:
+      - "8000:8000"
