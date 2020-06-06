@@ -1,37 +1,49 @@
 from .base import StrategyProvider
 import math
+from datetime import datetime
 from multiprocessing import Manager
+import pytz
+
+est = pytz.timezone('US/Eastern')
+utc = pytz.utc
+fmt = '%Y-%m-%d %H:%M:%S %Z%z'
 
 class MSRStrategyProvider(StrategyProvider):
-    def __init__(self):
+    def __init__(self, settings):
         super().__init__()
         self.mgr = Manager()
         print('initializing MSR strategy')
         self.data = self.mgr.dict()
-    
-    def ingest_data(self, data):
-        if data['symbol'] not in self.data.keys():
-            self.data[data['symbol']] = {
+        self.instruments = settings['INSTRUMENTS']
+        for ins in self.instruments:
+            self.data[ins] = {
                 'open': self.mgr.list(),
                 'close': self.mgr.list(),
                 'high': self.mgr.list(),
                 'low': self.mgr.list(),
                 'vol': self.mgr.list(),
+                'time': self.mgr.list(),
             }
+    
+    def ingest_data(self, data):
+        if data['symbol'] not in self.data.keys():
+            return
         sym = data['symbol']
         self.data[sym]['open'].append(data['o'])
         self.data[sym]['close'].append(data['c'])
         self.data[sym]['high'].append(data['h'])
         self.data[sym]['low'].append(data['l'])
         self.data[sym]['vol'].append(data['v'])
-        print('data: {}'.format(self.data))
+        self.data[sym]['time'].append(data['t'])
         self.analyze_queue.put(sym)
 
     def analyze(self, sym):
         print('analyzing {}'.format(sym))
         curr = len(self.data[sym]['open']) - 1
         if self.is_green(sym, curr):
-            print('green candle')
+            print('{}:: green candle at {}'.format(sym, datetime.fromtimestamp(self.data[sym]['time'][curr]).astimezone(est).strftime(fmt)))
+        elif self.is_red(sym, curr):
+            print('red candle')
         return
 
     def broadcast(self):

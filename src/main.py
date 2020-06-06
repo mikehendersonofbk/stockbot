@@ -20,8 +20,8 @@ def init_quote_provider(qs_cls, settings):
     qp.run()
     return qp
 
-def init_strategy_provider(ss_cls):
-    sp = ss_cls()
+def init_strategy_provider(ss_cls, settings):
+    sp = ss_cls(settings)
     sp.run()
     return sp
 
@@ -44,7 +44,9 @@ if __name__ == '__main__':
         'INSTRUMENTS': config.instruments,
         'LIMIT': 1000,
     })
-    strategy_provider = init_strategy_provider(strategy_class(config.strategy_source))
+    strategy_provider = init_strategy_provider(strategy_class(config.strategy_source), {
+        'INSTRUMENTS': config.instruments,
+    })
 
     for quote_msg in get_quotes(quote_provider):
         print('Got message from quote queue: {}'.format(quote_msg))

@@ -3,14 +3,15 @@ from multiprocessing import Process, Queue
 
 class QuoteProviderBase(ABC):
     def __init__(self):
+        self.fetch_queue = Queue()
         self.broadcast_queue = Queue()
 
     """ Abstract Method 'fetch'
         Used for ingesting data from quote source.
-        After fetching, put new data on provided queue.
+        Must be implemented as an iterator function.
     """
     @abstractmethod
-    def fetch(self, q):
+    def fetch(self):
         pass
 
     """ Abstract Method 'broadcast'
@@ -22,28 +23,35 @@ class QuoteProviderBase(ABC):
     def broadcast(self, val):
         pass
 
-    """ Method _run
-        Forks a new process that calls 'fetch'.
-        Continuously pulls off of queue to broadcast new records
-        Until 'DONE' is found
-    """
-    def _run(self):
-        q = Queue()
-        p = Process(target=self.fetch, args=(q,))
-        p.start()
-        while True:
-            msg = q.get()
-            if msg == 'DONE':
-                break
-            self.broadcast(msg)
-        p.join()
-
     """ Method 'run'
         Forks a new process to run internal _run method
         And returns control to main process
     """
     def run(self):
-        q = Queue()
-        p = Process(target=self._run)
-        p.start()
+        fp = Process(target=self._fetch_worker)
+        fp.start()
+        bp = Process(target=self._broadcast_worker)
+        bp.start()
 
+    """ Method _fetch_worker
+        Runs a loop on the fetch iterator and puts
+        any new data on self.fetch_queue
+    """
+    def _fetch_worker(self):
+        for data in self.fetch():
+            if data == 'DONE':
+                self.fetch_queue.put('DONE')
+                return
+            self.fetch_queue.put(data)
+
+    """ Method _broadcast_worker
+        Runs a loop pulling from self.fetch_queue
+        Calls self.broadcast on new data until sentinal
+        value 'DONE' is reached
+    """
+    def _broadcast_worker(self):
+        while True:
+            msg = self.fetch_queue.get()
+            if msg == 'DONE':
+                return
+            self.broadcast(msg)

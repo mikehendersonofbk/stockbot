@@ -31,32 +31,11 @@ class StrategyProvider(ABC):
     def broadcast(self, val):
         pass
 
-    """ Method 'run'
-        Forks a new process that calls 'ingest_data'.
-        Continuously pulls off the queue, ingests and then 
-        calls analyze if needed.
-    """
-    def _run(self):
-        # p = Process(target=self.ingest_data, args=(q,))
-        # p.start()
-        # while True:
-        #     data = ingest_queue.get()
-        #     if msg == 'DONE':
-        #         break
-        #     self.analyze()
-        # while True:
-        #     data = self.ingest_queue.get()
-        #     if data == 'DONE':
-        #         break
-        #     self.ingest_data(data)
+    def run(self):
         ip = Process(target=self._ingest_worker)
         ip.start()
         ap = Process(target=self._analyze_worker)
         ap.start()
-
-    def run(self):
-        p = Process(target=self._run)
-        p.start()
 
     def _ingest_worker(self):
         while True:

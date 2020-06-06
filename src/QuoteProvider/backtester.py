@@ -21,20 +21,22 @@ class BTQuoteProvider(QuoteProviderBase):
         data = requests.get('{}/v1/bars/1Min'.format(self.data_url), params=params, headers=headers)
         self.data = data.json()
 
-    def fetch(self, q):
+    def fetch(self):
         print('fetching in process: {}'.format(os.getpid()))
         for i in range(self.limit):
             time.sleep(1)
             for instrument in self.instruments:
-                q.put({
+                yield {
                     'symbol': instrument,
                     'o': self.data[instrument][i]['o'],
                     'c': self.data[instrument][i]['c'],
                     'h': self.data[instrument][i]['h'],
                     'l': self.data[instrument][i]['l'],
                     'v': self.data[instrument][i]['v'],
-                })
-        q.put('DONE')
+                    't': self.data[instrument][i]['t']
+                }
+        yield 'DONE'
+        return
 
     def broadcast(self, val):
         self.broadcast_queue.put(val)
