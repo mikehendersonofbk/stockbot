@@ -1,5 +1,5 @@
 from QuoteProvider.backtester import BTQuoteProvider
-from StrategyProvider.mse import MSEStrategyProvider
+from StrategyProvider.msr import MSRStrategyProvider
 from config import Config
 import os
 from multiprocessing import Queue
@@ -9,8 +9,8 @@ def quote_source_class(qs):
         return BTQuoteProvider
 
 def strategy_class(ss):
-    if ss == 'MSE':
-        return MSEStrategyProvider
+    if ss == 'MSR':
+        return MSRStrategyProvider
 
 def init_config():
     return Config()
