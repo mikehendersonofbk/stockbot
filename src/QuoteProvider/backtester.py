@@ -24,7 +24,7 @@ class BTQuoteProvider(QuoteProviderBase):
     def fetch(self):
         print('fetching in process: {}'.format(os.getpid()))
         for i in range(self.limit):
-            time.sleep(1)
+            # time.sleep(1)
             for instrument in self.instruments:
                 yield {
                     'symbol': instrument,

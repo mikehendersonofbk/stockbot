@@ -49,6 +49,6 @@ if __name__ == '__main__':
     })
 
     for quote_msg in get_quotes(quote_provider):
-        print('Got message from quote queue: {}'.format(quote_msg))
-        print('submitting to strategy')
+        # print('Got message from quote queue: {}'.format(quote_msg))
+        # print('submitting to strategy')
         strategy_provider.ingest_queue.put(quote_msg)

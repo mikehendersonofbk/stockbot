@@ -3,6 +3,7 @@ import math
 from datetime import datetime
 from multiprocessing import Manager
 import pytz
+from .candle_helpers import CandleHelpers
 
 est = pytz.timezone('US/Eastern')
 utc = pytz.utc
@@ -38,13 +39,27 @@ class MSRStrategyProvider(StrategyProvider):
         self.analyze_queue.put(sym)
 
     def analyze(self, sym):
-        print('analyzing {}'.format(sym))
         curr = len(self.data[sym]['open']) - 1
-        if self.is_green(sym, curr):
-            print('{}:: green candle at {}'.format(sym, datetime.fromtimestamp(self.data[sym]['time'][curr]).astimezone(est).strftime(fmt)))
-        elif self.is_red(sym, curr):
-            print('red candle')
+        curr_candle = self.get_ochl_for_index(sym, curr)
+
+        if self.is_msr(sym):
+            print('true')
         return
+    
+    def is_msr(self, sym):
+        if len(self.data[sym]['open']) < 4:
+            return False
+        curr = self.get_ochl_for_index(sym, -1)
+        prev = self.get_ochl_for_index(sym, -2)
+        two_back = self.get_ochl_for_index(sym, -3)
+        three_back = self.get_ochl_for_index(sym, -4)
+        if (CandleHelpers.is_indecision(prev)
+            and CandleHelpers.is_red(two_back)
+            # and CandleHelpers.is_red(three_back)
+            and CandleHelpers.is_green(curr)):
+            print('{} is msr at {}'.format(sym, datetime.fromtimestamp(prev['time']).astimezone(est).strftime(fmt)))
+            return True
+        return False
 
     def broadcast(self):
         return
@@ -59,13 +74,9 @@ class MSRStrategyProvider(StrategyProvider):
             'close': self.data[sym]['close'][index],
             'high': self.data[sym]['high'][index],
             'low': self.data[sym]['low'][index],
+            'volume': self.data[sym]['vol'][index],
+            'time': self.data[sym]['time'][index],
         }
-
-    def is_green(self, sym, index):
-        return self.data[sym]['close'][index] > self.data[sym]['open'][index]
-    
-    def is_red(self, sym, index):
-        return self.data[sym]['close'][index] < self.data[sym]['open'][index]
 
     def is_indecision(self, sym, index):
         bar = self.get_ochl_for_index(sym, index)
